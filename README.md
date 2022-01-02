@@ -2,9 +2,11 @@
 
 Get any Skype contact by phone number! And do Skype search by any term, literally.
 
-This script exploits Skype search functionality.
+How it works? This script exploits Skype search API functionality.
 
 ## Usage
+
+**The tool based on the template [osint-cli-tool-skeleton](https://github.com/soxoj/osint-cli-tool-skeleton)**. Read its README to explore all the available functionality.
 
 You need to authorize first to get Skype token. You can:
 
@@ -16,7 +18,7 @@ export SKYPE_PASS=pass
 
 2. Enter credentials after the launch:
 ```
-./search.py +79218657070
+./run.py +79218657070
 Login: 
 Password: 
 ```
