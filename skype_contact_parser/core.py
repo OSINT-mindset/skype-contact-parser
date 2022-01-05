@@ -33,6 +33,13 @@ class OutputData:
         self.state = values.get('state')
         self.contact_type = values.get('contactType')
 
+    @property
+    def fields(self):
+        fields = list(self.__dict__.keys())
+        fields.remove('error')
+
+        return fields
+
     def __str__(self):
         error = ''
         if self.error:

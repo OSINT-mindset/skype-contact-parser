@@ -10,6 +10,7 @@ import sys
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 from .core import *
+from .report import *
 
 
 def setup_arguments_parser():
@@ -43,6 +44,24 @@ def setup_arguments_parser():
         dest="target_list_filename",
         default='',
         help="Path to text file with list of targets.",
+    )
+    target_group.add_argument(
+        "--targets-from-stdin",
+        action="store_true",
+        dest="target_list_stdin",
+        default=False,
+        help="Read all the lines from standard input.",
+    )
+    out_group = parser.add_argument_group(
+        'OUTPUT', 'Options for output reports'
+    )
+    out_group.add_argument(
+        "--csv-report",
+        "-oC",
+        action="store",
+        dest="csv_filename",
+        default='',
+        help="Path to file for saving CSV report.",
     )
     parser.add_argument(
         "--version",
@@ -81,6 +100,14 @@ def setup_arguments_parser():
         dest="verbose",
         default=False,
         help="Display extra information and metrics.",
+    )
+    parser.add_argument(
+        "--silent",
+        "-s",
+        action="store_true",
+        dest="silent",
+        default=False,
+        help="Suppress console output.",
     )
     parser.add_argument(
         "--info",
@@ -142,12 +169,21 @@ async def main():
 
     input_data = []
 
+    # read from file
     if args.target_list_filename:
         if not os.path.exists(args.target_list_filename):
             print(f'There is no file {args.target_list_filename}')
         else:
             with open(args.target_list_filename) as f:
                 input_data = [InputData(t) for t in f.read().splitlines()]
+
+    # read from stdin
+    # e.g. cat list.txt | ./run.py --targets-from-stdin
+    elif args.target_list_stdin:
+        for line in sys.stdin:
+            input_data.append(InputData(line.strip()))
+
+    # read from arguments
     elif args.target:
         input_data = [InputData(t) for t in args.target]
 
@@ -158,8 +194,13 @@ async def main():
     processor = Processor()
     output_data = await processor.process(input_data)
 
-    for o in output_data:
-        print(o)
+    if not args.silent:
+        r = PlainOutput(output_data, colored=not args.no_color)
+        print(r.put())
+
+    if args.csv_filename:
+        r = CSVOutput(output_data, filename=args.csv_filename)
+        print(r.put())
 
     await processor.close()
 
