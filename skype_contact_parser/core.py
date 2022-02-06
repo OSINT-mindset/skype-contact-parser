@@ -1,13 +1,14 @@
 import asyncio
 import os
 import random
+from json import JSONEncoder
 from typing import List, Any
 
 from aiohttp import TCPConnector, ClientSession
 from bs4 import BeautifulSoup as bs
 import skpy
 
-from .executor import AsyncioProgressbarQueueExecutor
+from .executor import AsyncioProgressbarQueueExecutor, AsyncioSimpleExecutor
 
 
 class InputData:
@@ -70,8 +71,18 @@ class OutputDataList:
         return f'Target {self.input_data}:\n' + '--------\n'.join(map(str, self.results))
 
 
+class OutputDataListEncoder(JSONEncoder):
+    def default(self, o):
+        if isinstance(o, OutputDataList):
+            return {'input': o.input_data, 'output': o.results}
+        elif isinstance(o, OutputData):
+            return {k:o.__dict__[k] for k in o.fields}
+        else:
+            return o.__dict__
+
+
 class Processor:
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         connector = TCPConnector(ssl=False)
         self.session = ClientSession(
             connector=connector, trust_env=True
@@ -94,6 +105,11 @@ class Processor:
             sk = skpy.Skype(login, passw, token_file)
 
         self.skype_token = sk.conn.tokens['skype']
+
+        if kwargs.get('no_progressbar'):
+            self.executor = AsyncioSimpleExecutor()
+        else:
+            self.executor = AsyncioProgressbarQueueExecutor()
 
     async def close(self):
         await self.session.close()
@@ -144,6 +160,6 @@ class Processor:
             for i in input_data
         ]
 
-        results = await AsyncioProgressbarQueueExecutor().run(tasks)
+        results = await self.executor.run(tasks)
 
         return results

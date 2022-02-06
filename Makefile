@@ -1,5 +1,5 @@
 PROJECT_NAME=skype_contact_parser
-LINT_FILES=skype_contact_parser tests
+LINT_FILES=skype_contact_parser
 
 test:
 	coverage run --source=./skype_contact_parser -m pytest tests

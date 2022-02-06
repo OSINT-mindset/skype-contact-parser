@@ -11,6 +11,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 from .core import *
 from .report import *
+from .server import *
 
 
 def setup_arguments_parser():
@@ -62,6 +63,14 @@ def setup_arguments_parser():
         dest="csv_filename",
         default='',
         help="Path to file for saving CSV report.",
+    )
+    out_group.add_argument(
+        "--json-report",
+        "-oJ",
+        action="store",
+        dest="json_filename",
+        default='',
+        help="Path to file for saving JSON report.",
     )
     parser.add_argument(
         "--version",
@@ -127,6 +136,14 @@ def setup_arguments_parser():
         help="Display extra/service/debug information and metrics, save responses in debug.log.",
     )
     parser.add_argument(
+        "--server",
+        metavar='SERVER_ADDR',
+        action="store",
+        dest="server",
+        default='',
+        help="Start a server on a specific IP:PORT. e.g. 0.0.0.0:8080",
+    )
+    parser.add_argument(
         "--no-color",
         action="store_true",
         dest="no_color",
@@ -167,6 +184,14 @@ async def main():
 
     logger.setLevel(log_level)
 
+    # server
+    if args.server:
+        await CheckServer(
+            proxy=args.proxy,
+            addr=args.server,
+            loop=asyncio.get_event_loop(),
+        ).start(debug=args.debug)
+
     input_data = []
 
     # read from file
@@ -202,13 +227,21 @@ async def main():
         r = CSVOutput(output_data, filename=args.csv_filename)
         print(r.put())
 
+    # save JSON report
+    if args.json_filename:
+        r = JSONOutput(output_data, filename=args.json_filename)
+        print(r.put())
+
     await processor.close()
 
 
 def run():
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-
+    try:
+        loop.run_until_complete(main())
+    except KeyboardInterrupt:
+        pass
+    loop.close()
 
 if __name__ == "__main__":
     run()
