@@ -11,6 +11,9 @@ import skpy
 from .executor import AsyncioProgressbarQueueExecutor, AsyncioSimpleExecutor
 
 
+CRED_FILE = 'credentials.txt'
+
+
 class InputData:
     def __init__(self, value: str):
         self.value = value
@@ -99,7 +102,29 @@ class Processor:
         except skpy.core.SkypeAuthException as e:
             print(e)
 
+        credentials = []
+        # try to use credentials from credentials.txt
+        if (not sk or not sk.conn.tokens) and os.path.exists(CRED_FILE):
+            lines = open(CRED_FILE).read().splitlines()
+            for line in lines:
+                credentials.append(line.strip().split(':'))
+
+            for c in credentials:
+                print(f'Trying to use {c[0]} from {CRED_FILE}')
+                try:
+                    sk = skpy.Skype(c[0], c[1], token_file)
+                except skpy.core.SkypeAuthException as e:
+                    print('Auth failed, go to next credentials pair')
+                    continue
+
+                if not sk or not sk.conn.tokens:
+                    print('Fail, go to next credentials pair')
+                else:
+                    print('Success')
+                    break
+
         if not sk or not sk.conn.tokens:
+            print(f'Trying to use credentials from ENV or CLI input')
             login = os.getenv('SKYPE_LOGIN') or input('Login: ')
             passw = os.getenv('SKYPE_PASS') or input('Password: ')
             sk = skpy.Skype(login, passw, token_file)
